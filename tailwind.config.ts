@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        serif: ["'Crimson Pro'", "Georgia", "serif"],
+        sans: ["'Inter'", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,6 +50,12 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        cell: {
+          white: "hsl(var(--cell-white))",
+          black: "hsl(var(--cell-black))",
+          selected: "hsl(var(--cell-selected))",
+          highlight: "hsl(var(--cell-highlight))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
