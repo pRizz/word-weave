@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { CrosswordGrid } from "@/components/CrosswordGrid";
 import { CluesList } from "@/components/CluesList";
 import { Button } from "@/components/ui/button";
 import { fillCrossword } from "@/lib/crosswordFill";
-import { DEFAULT_WORD_LIST } from "@/lib/wordList";
+import { DEFAULT_WORD_LIST, fetchDictionaryWords } from "@/lib/wordList";
 import { Sparkles, RotateCcw, Grid3X3, Loader2 } from "lucide-react";
 
 const GRID_PRESETS = {
@@ -42,13 +42,37 @@ export default function Index() {
   const [shape, setShape] = useState<boolean[][]>(() =>
     createDefaultShape(GRID_PRESETS.medium.size)
   );
+  const [dictionary, setDictionary] = useState<string[]>(DEFAULT_WORD_LIST);
   const [filledGrid, setFilledGrid] = useState<string[][] | null>(null);
   const [assignments, setAssignments] = useState<Map<string, string>>(
     new Map()
   );
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDictionaryLoading, setIsDictionaryLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    fetchDictionaryWords()
+      .then((words) => {
+        if (isCancelled) return;
+        if (words.length === 0) return;
+        setDictionary(words);
+      })
+      .catch(() => {
+        // Keep DEFAULT_WORD_LIST as a fallback if the dictionary can't be loaded.
+      })
+      .finally(() => {
+        if (isCancelled) return;
+        setIsDictionaryLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   const handleCellClick = useCallback(
     (row: number, col: number) => {
@@ -83,7 +107,7 @@ export default function Index() {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     try {
-      const result = fillCrossword(shape, DEFAULT_WORD_LIST, {
+      const result = fillCrossword(shape, dictionary, {
         minWordLength: 2,
         allowReuseWords: false,
         randomizeCandidates: true,
@@ -104,7 +128,7 @@ export default function Index() {
     } finally {
       setIsGenerating(false);
     }
-  }, [shape]);
+  }, [shape, dictionary]);
 
   const handleReset = () => {
     setShape(createDefaultShape(GRID_PRESETS[gridSize].size));
@@ -186,11 +210,16 @@ export default function Index() {
 
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || isDictionaryLoading}
               className="font-sans"
               size="sm"
             >
-              {isGenerating ? (
+              {isDictionaryLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  Loading words...
+                </>
+              ) : isGenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
                   Generating...
