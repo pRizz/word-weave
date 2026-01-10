@@ -2,9 +2,9 @@ import { useState, useCallback, useEffect } from "react";
 import { CrosswordGrid } from "@/components/CrosswordGrid";
 import { CluesList } from "@/components/CluesList";
 import { Button } from "@/components/ui/button";
-import { fillCrossword } from "@/lib/crosswordFill";
+import { useCrosswordWorker } from "@/hooks/useCrosswordWorker";
 import { DEFAULT_WORD_LIST, fetchDictionaryWords } from "@/lib/wordList";
-import { Sparkles, RotateCcw, Grid3X3, Loader2 } from "lucide-react";
+import { Sparkles, RotateCcw, Grid3X3, Loader2, X } from "lucide-react";
 
 const GRID_PRESETS = {
   small: { name: "5×5", size: 5 },
@@ -47,10 +47,11 @@ export default function Index() {
   const [assignments, setAssignments] = useState<Map<string, string>>(
     new Map()
   );
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isDictionaryLoading, setIsDictionaryLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { generate, cancel, isGenerating, progress } = useCrosswordWorker();
 
   useEffect(() => {
     let isCancelled = false;
@@ -100,21 +101,17 @@ export default function Index() {
   };
 
   const handleGenerate = useCallback(async () => {
-    setIsGenerating(true);
     setError(null);
 
-    // Use setTimeout to allow UI to update before heavy computation
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
     try {
-      const result = fillCrossword(shape, dictionary, {
+      const result = await generate(shape, dictionary, {
         minWordLength: 2,
         allowReuseWords: false,
         randomizeCandidates: true,
         maxSteps: 500000,
       });
 
-      if (result) {
+      if (result.grid && result.assignments) {
         setFilledGrid(result.grid);
         setAssignments(result.assignments);
         setIsEditing(false);
@@ -125,10 +122,12 @@ export default function Index() {
       }
     } catch (e) {
       setError("An error occurred while generating the puzzle.");
-    } finally {
-      setIsGenerating(false);
     }
-  }, [shape, dictionary]);
+  }, [shape, dictionary, generate]);
+
+  const handleCancel = useCallback(() => {
+    cancel();
+  }, [cancel]);
 
   const handleReset = () => {
     setShape(createDefaultShape(GRID_PRESETS[gridSize].size));
@@ -208,34 +207,59 @@ export default function Index() {
               </Button>
             )}
 
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || isDictionaryLoading}
-              className="font-sans"
-              size="sm"
-            >
-              {isDictionaryLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                  Loading words...
-                </>
-              ) : isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-1.5" />
-                  Generate Puzzle
-                </>
-              )}
-            </Button>
+            {isGenerating ? (
+              <Button
+                onClick={handleCancel}
+                variant="destructive"
+                className="font-sans"
+                size="sm"
+              >
+                <X className="w-4 h-4 mr-1.5" />
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerate}
+                disabled={isDictionaryLoading}
+                className="font-sans"
+                size="sm"
+              >
+                {isDictionaryLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    Loading words...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-1.5" />
+                    Generate Puzzle
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
 
+        {/* Progress indicator */}
+        {isGenerating && progress && (
+          <div className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/20 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <div className="text-sm font-sans">
+                <span className="font-medium text-foreground">Generating...</span>
+                <span className="text-muted-foreground ml-2">
+                  {progress.steps.toLocaleString()} backtracks
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  ({(progress.elapsedMs / 1000).toFixed(1)}s)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Instructions */}
-        {isEditing && !filledGrid && (
+        {isEditing && !filledGrid && !isGenerating && (
           <div className="mb-6 p-4 bg-secondary/50 rounded-lg border border-border animate-fade-in">
             <p className="text-sm font-sans text-muted-foreground">
               <span className="font-medium text-foreground">Tip:</span> Click
