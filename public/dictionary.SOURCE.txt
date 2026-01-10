@@ -1,0 +1,4 @@
+Dictionary source:
+- enable1 word list
+- Downloaded from: https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt
+
