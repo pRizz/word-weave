@@ -78,7 +78,7 @@ export default function Index() {
 
   const handleCellClick = useCallback(
     (row: number, col: number) => {
-      if (!isEditing) return;
+      if (!isEditing || isGenerating) return;
 
       setShape((prev) => {
         const newShape = prev.map((r) => [...r]);
@@ -89,7 +89,7 @@ export default function Index() {
       setAssignments(new Map());
       setError(null);
     },
-    [isEditing]
+    [isEditing, isGenerating]
   );
 
   const handleGridSizeChange = (size: keyof typeof GRID_PRESETS) => {
