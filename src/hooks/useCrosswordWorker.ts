@@ -10,6 +10,8 @@ export interface GenerationProgress {
 export interface GenerationResult {
   grid: string[][] | null;
   assignments: Map<string, string> | null;
+  elapsedMs: number;
+  backtracks: number;
 }
 
 export function useCrosswordWorker() {
@@ -51,7 +53,9 @@ export function useCrosswordWorker() {
 
           resolve({
             grid: msg.grid,
-            assignments: msg.assignments ? new Map(msg.assignments) : null
+            assignments: msg.assignments ? new Map(msg.assignments) : null,
+            elapsedMs: msg.elapsedMs,
+            backtracks: msg.backtracks
           });
         } else if (msg.type === "error") {
           setIsGenerating(false);

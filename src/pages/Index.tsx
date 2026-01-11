@@ -50,6 +50,7 @@ export default function Index() {
   const [isDictionaryLoading, setIsDictionaryLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generationStats, setGenerationStats] = useState<{ elapsedMs: number; backtracks: number } | null>(null);
 
   const { generate, cancel, isGenerating, progress } = useCrosswordWorker();
 
@@ -102,6 +103,7 @@ export default function Index() {
 
   const handleGenerate = useCallback(async () => {
     setError(null);
+    setGenerationStats(null);
 
     try {
       const result = await generate(shape, dictionary, {
@@ -115,6 +117,7 @@ export default function Index() {
         setFilledGrid(result.grid);
         setAssignments(result.assignments);
         setIsEditing(false);
+        setGenerationStats({ elapsedMs: result.elapsedMs, backtracks: result.backtracks });
       } else {
         setError(
           "Couldn't fill this grid pattern. Try adjusting the black squares or using a different layout."
@@ -135,6 +138,7 @@ export default function Index() {
     setAssignments(new Map());
     setError(null);
     setIsEditing(true);
+    setGenerationStats(null);
   };
 
   const handleClear = () => {
@@ -142,6 +146,7 @@ export default function Index() {
     setAssignments(new Map());
     setError(null);
     setIsEditing(true);
+    setGenerationStats(null);
   };
 
   return (
@@ -327,6 +332,22 @@ export default function Index() {
                 </span>{" "}
                 grid
               </div>
+              {generationStats && (
+                <>
+                  <div>
+                    <span className="text-foreground font-medium font-mono tabular-nums">
+                      {(generationStats.elapsedMs / 1000).toFixed(2)}s
+                    </span>{" "}
+                    generation time
+                  </div>
+                  <div>
+                    <span className="text-foreground font-medium font-mono tabular-nums">
+                      {generationStats.backtracks.toLocaleString()}
+                    </span>{" "}
+                    backtracks
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

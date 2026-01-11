@@ -23,7 +23,7 @@ export type WorkerMessage =
 
 export type WorkerResponse = 
   | { type: "progress"; steps: number; elapsedMs: number; partialGrid: string[][] }
-  | { type: "complete"; grid: string[][] | null; assignments: [string, string][] | null }
+  | { type: "complete"; grid: string[][] | null; assignments: [string, string][] | null; elapsedMs: number; backtracks: number }
   | { type: "error"; message: string };
 
 let cancelled = false;
@@ -39,10 +39,12 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   if (msg.type === "start") {
     cancelled = false;
     const startTime = performance.now();
+    let totalSteps = 0;
     
     try {
       const result = fillCrossword(msg.shape, msg.dictionary, msg.options, (steps, partialGrid) => {
         if (cancelled) return false;
+        totalSteps = steps;
         
         const elapsedMs = performance.now() - startTime;
         self.postMessage({ type: "progress", steps, elapsedMs, partialGrid: cloneGrid(partialGrid) } as WorkerResponse);
@@ -51,17 +53,23 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       
       if (cancelled) return;
       
+      const finalElapsedMs = performance.now() - startTime;
+      
       if (result) {
         self.postMessage({
           type: "complete",
           grid: result.grid,
-          assignments: Array.from(result.assignments.entries())
+          assignments: Array.from(result.assignments.entries()),
+          elapsedMs: finalElapsedMs,
+          backtracks: result.steps
         } as WorkerResponse);
       } else {
         self.postMessage({
           type: "complete",
           grid: null,
-          assignments: null
+          assignments: null,
+          elapsedMs: finalElapsedMs,
+          backtracks: totalSteps
         } as WorkerResponse);
       }
     } catch (err) {
@@ -78,6 +86,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
 type FillResult = Readonly<{
   grid: string[][];
   assignments: Map<string, string>;
+  steps: number;
 }>;
 
 function fillCrossword(
@@ -124,7 +133,7 @@ function fillCrossword(
     }
 
     if (assignments.size === slots.length) {
-      return { grid: cloneGrid(grid), assignments: new Map(assignments) };
+      return { grid: cloneGrid(grid), assignments: new Map(assignments), steps };
     }
 
     const next = pickNextSlot(slots, assignments, grid, dictByLen, usedWords, allowReuseWords);
