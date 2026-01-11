@@ -295,6 +295,13 @@ export default function Index() {
                 onCellClick={handleCellClick}
                 isEditing={isEditing && !isGenerating}
                 cellSize={Math.min(45, Math.max(32, 400 / shape.length))}
+                tooltipMessage={
+                  isGenerating
+                    ? "Stop generation to edit the grid"
+                    : filledGrid
+                      ? "Reset the grid to edit it"
+                      : undefined
+                }
               />
             </div>
           </div>
