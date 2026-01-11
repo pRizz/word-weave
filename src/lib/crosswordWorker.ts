@@ -22,7 +22,7 @@ export type WorkerMessage =
   | { type: "cancel" };
 
 export type WorkerResponse = 
-  | { type: "progress"; steps: number; elapsedMs: number }
+  | { type: "progress"; steps: number; elapsedMs: number; partialGrid: string[][] }
   | { type: "complete"; grid: string[][] | null; assignments: [string, string][] | null }
   | { type: "error"; message: string };
 
@@ -41,11 +41,11 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
     const startTime = performance.now();
     
     try {
-      const result = fillCrossword(msg.shape, msg.dictionary, msg.options, (steps) => {
+      const result = fillCrossword(msg.shape, msg.dictionary, msg.options, (steps, partialGrid) => {
         if (cancelled) return false;
         
         const elapsedMs = performance.now() - startTime;
-        self.postMessage({ type: "progress", steps, elapsedMs } as WorkerResponse);
+        self.postMessage({ type: "progress", steps, elapsedMs, partialGrid: cloneGrid(partialGrid) } as WorkerResponse);
         return true; // continue
       });
       
@@ -84,7 +84,7 @@ function fillCrossword(
   shape: boolean[][],
   dictionary: ReadonlyArray<string>,
   options: CrosswordFillOptions = {},
-  onProgress?: (steps: number) => boolean,
+  onProgress?: (steps: number, partialGrid: string[][]) => boolean,
 ): FillResult | null {
   const minWordLength = options.minWordLength ?? 2;
   const allowReuseWords = options.allowReuseWords ?? false;
@@ -119,7 +119,7 @@ function fillCrossword(
     
     // Report progress every N steps
     if (onProgress && steps % progressInterval === 0) {
-      const shouldContinue = onProgress(steps);
+      const shouldContinue = onProgress(steps, grid);
       if (!shouldContinue) return null;
     }
 
