@@ -248,10 +248,10 @@ export default function Index() {
               <div className="text-sm font-sans">
                 <span className="font-medium text-foreground">Generating...</span>
                 <span className="text-muted-foreground ml-2">
-                  {progress.steps.toLocaleString()} backtracks
+                  <span className="font-mono tabular-nums">{progress.steps.toLocaleString()}</span> backtracks
                 </span>
                 <span className="text-muted-foreground ml-2">
-                  ({(progress.elapsedMs / 1000).toFixed(1)}s)
+                  (<span className="font-mono tabular-nums">{(progress.elapsedMs / 1000).toFixed(1)}</span>s)
                 </span>
               </div>
             </div>
