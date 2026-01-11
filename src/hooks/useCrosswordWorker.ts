@@ -4,6 +4,7 @@ import type { CrosswordFillOptions, WorkerMessage, WorkerResponse } from "@/lib/
 export interface GenerationProgress {
   steps: number;
   elapsedMs: number;
+  partialGrid: string[][];
 }
 
 export interface GenerationResult {
@@ -41,7 +42,7 @@ export function useCrosswordWorker() {
         const msg = e.data;
 
         if (msg.type === "progress") {
-          setProgress({ steps: msg.steps, elapsedMs: msg.elapsedMs });
+          setProgress({ steps: msg.steps, elapsedMs: msg.elapsedMs, partialGrid: msg.partialGrid });
         } else if (msg.type === "complete") {
           setIsGenerating(false);
           setProgress(null);

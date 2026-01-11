@@ -280,12 +280,15 @@ export default function Index() {
         <div className="grid lg:grid-cols-[auto_1fr] gap-8 items-start">
           {/* Grid */}
           <div className="flex justify-center lg:justify-start">
-            <div className="animate-scale-in">
+            <div className={`animate-scale-in ${isGenerating ? 'relative' : ''}`}>
+              {isGenerating && (
+                <div className="absolute inset-0 bg-primary/5 rounded-lg pointer-events-none z-10 animate-pulse" />
+              )}
               <CrosswordGrid
                 shape={shape}
-                filledGrid={filledGrid}
+                filledGrid={isGenerating && progress?.partialGrid ? progress.partialGrid : filledGrid}
                 onCellClick={handleCellClick}
-                isEditing={isEditing}
+                isEditing={isEditing && !isGenerating}
                 cellSize={Math.min(45, Math.max(32, 400 / shape.length))}
               />
             </div>
