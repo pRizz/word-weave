@@ -1,6 +1,12 @@
 import { useMemo } from "react";
 import { getClueNumbers } from "@/lib/crosswordFill";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CrosswordGridProps {
   shape: boolean[][];
@@ -8,6 +14,7 @@ interface CrosswordGridProps {
   onCellClick?: (row: number, col: number) => void;
   isEditing?: boolean;
   cellSize?: number;
+  tooltipMessage?: string;
 }
 
 export function CrosswordGrid({
@@ -16,13 +23,14 @@ export function CrosswordGrid({
   onCellClick,
   isEditing = false,
   cellSize = 40,
+  tooltipMessage,
 }: CrosswordGridProps) {
   const clueNumbers = useMemo(() => getClueNumbers(shape), [shape]);
 
   const height = shape.length;
   const width = shape[0]?.length ?? 0;
 
-  return (
+  const gridContent = (
     <div
       className="inline-block border-2 border-primary shadow-heavy"
       style={{
@@ -80,4 +88,21 @@ export function CrosswordGrid({
       )}
     </div>
   );
+
+  if (tooltipMessage) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>{gridContent}</div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{tooltipMessage}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return gridContent;
 }
