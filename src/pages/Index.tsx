@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { BannerHost, type BannerCandidate } from "@/components/BannerHost";
 import { useCrosswordWorker } from "@/hooks/useCrosswordWorker";
 import { DEFAULT_WORD_LIST, fetchDictionaryWords } from "@/lib/wordList";
-import { analyzeCrosswordShape, buildDictionaryIndex } from "@/lib/crosswordFill";
+import {
+  analyzeCrosswordShape,
+  buildDictionaryIndex,
+} from "@/lib/crosswordFill";
 import { DEFAULT_DICTIONARY_CONFIG } from "@/config/dictionary";
 import { Sparkles, RotateCcw, Grid3X3, Loader2, X } from "lucide-react";
 
@@ -62,8 +65,12 @@ export default function Index() {
     backtracks: number;
   } | null>(null);
 
-  const { generate, cancel, isGenerating, progress: maybeProgress } =
-    useCrosswordWorker();
+  const {
+    generate,
+    cancel,
+    isGenerating,
+    progress: maybeProgress,
+  } = useCrosswordWorker();
 
   const dictionaryIndex = useMemo(
     () => buildDictionaryIndex(dictionary),
@@ -132,12 +139,7 @@ export default function Index() {
     }
 
     return candidates;
-  }, [
-    isEditing,
-    isGenerating,
-    maybeError,
-    shapeAnalysis.issues,
-  ]);
+  }, [isEditing, isGenerating, maybeError, shapeAnalysis.issues]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -396,9 +398,9 @@ export default function Index() {
         )}
 
         {/* Grid and Clues */}
-        <div className="grid lg:grid-cols-[auto_1fr] gap-8 items-start">
+        <div className="grid lg:grid-cols-[minmax(auto, 1fr)_1fr] gap-8 items-start">
           {/* Grid */}
-          <div className="flex justify-center lg:justify-start">
+          <div className="flex justify-center w-full">
             <div
               className={`animate-scale-in ${isGenerating ? "relative" : ""}`}
             >
