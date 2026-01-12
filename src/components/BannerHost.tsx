@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 export type BannerVariant = "default" | "destructive";
 
@@ -206,10 +206,10 @@ export function BannerHost({
     <div className={cn("w-full", className)} style={slotStyle}>
       <div
         className={cn(
-          "transition-all duration-200 ease-out",
+          "will-change-[transform,opacity] transition-all duration-250 ease-out motion-reduce:transition-none",
           isVisible
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 -translate-y-2 pointer-events-none",
+            ? "opacity-100 translate-y-0 scale-100"
+            : "opacity-0 -translate-y-2 scale-[0.985] pointer-events-none",
         )}
       >
         {maybeDisplayedBanner ? (
