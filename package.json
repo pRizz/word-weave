@@ -1,12 +1,12 @@
 {
   "name": "word-weave",
-  "private": true,
   "version": "0.0.0",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git@github.com:pRizz/word-weave.git"
   },
+  "homepage": "https://crossword-puzzle-generator5.lovable.app",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

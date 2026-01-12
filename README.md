@@ -7,6 +7,8 @@
 
 An interactive web application for generating crossword puzzles. Design custom grid layouts and automatically fill them with words from a comprehensive dictionary using an intelligent backtracking algorithm.
 
+🌐 **Live Demo**: [https://crossword-puzzle-generator5.lovable.app](https://crossword-puzzle-generator5.lovable.app)
+
 ## Features
 
 - 🎨 **Custom Grid Design**: Click cells to toggle between white (letter cells) and black (blocked cells)
