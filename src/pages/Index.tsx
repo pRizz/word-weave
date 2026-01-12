@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { CrosswordGrid } from "@/components/CrosswordGrid";
 import { CluesList } from "@/components/CluesList";
 import { Button } from "@/components/ui/button";
+import { BannerHost, type BannerCandidate } from "@/components/BannerHost";
 import { useCrosswordWorker } from "@/hooks/useCrosswordWorker";
 import { DEFAULT_WORD_LIST, fetchDictionaryWords } from "@/lib/wordList";
 import { analyzeCrosswordShape, buildDictionaryIndex } from "@/lib/crosswordFill";
@@ -79,6 +80,64 @@ export default function Index() {
       }),
     [shape, dictionaryIndex],
   );
+
+  const bannerCandidates = useMemo((): BannerCandidate[] => {
+    const candidates: BannerCandidate[] = [];
+
+    // Highest priority: explicit generation errors (e.g., user clicked Generate).
+    if (maybeError) {
+      candidates.push({
+        source: "generation",
+        priority: 100,
+        variant: "destructive",
+        title: "Couldn’t generate puzzle",
+        message: maybeError,
+      });
+    }
+
+    // Next: live grid validation while editing.
+    if (isEditing && !isGenerating && shapeAnalysis.issues.length > 0) {
+      const blockingIssues = shapeAnalysis.issues.filter(
+        (issue) => issue.severity === "error",
+      );
+      const warningIssues = shapeAnalysis.issues.filter(
+        (issue) => issue.severity !== "error",
+      );
+
+      if (blockingIssues.length > 0) {
+        candidates.push({
+          source: "grid",
+          priority: 80,
+          variant: "destructive",
+          title: "Fix grid issues",
+          message:
+            blockingIssues.length === 1
+              ? blockingIssues[0]!.message
+              : `${blockingIssues.length} issues are preventing generation.`,
+          details: blockingIssues.map((issue) => issue.message),
+        });
+      } else if (warningIssues.length > 0) {
+        candidates.push({
+          source: "grid",
+          priority: 40,
+          variant: "default",
+          title: "Grid warnings",
+          message:
+            warningIssues.length === 1
+              ? warningIssues[0]!.message
+              : `${warningIssues.length} warnings detected.`,
+          details: warningIssues.map((issue) => issue.message),
+        });
+      }
+    }
+
+    return candidates;
+  }, [
+    isEditing,
+    isGenerating,
+    maybeError,
+    shapeAnalysis.issues,
+  ]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -215,6 +274,8 @@ export default function Index() {
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 py-8">
+        <BannerHost className="mb-6" candidates={bannerCandidates} />
+
         {/* Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8 overflow-hidden">
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -331,48 +392,6 @@ export default function Index() {
               cells to toggle between white (letters) and black (blocked). Then
               click "Generate Puzzle" to fill it with words.
             </p>
-          </div>
-        )}
-
-        {/* Live grid validation */}
-        {isEditing && !isGenerating && shapeAnalysis.issues.length > 0 && (
-          <div
-            className={`mb-6 p-4 rounded-lg border animate-fade-in ${
-              shapeAnalysis.isValid
-                ? "bg-primary/5 border-primary/20"
-                : "bg-destructive/10 border-destructive/20"
-            }`}
-          >
-            <p
-              className={`text-sm font-sans ${
-                shapeAnalysis.isValid ? "text-foreground" : "text-destructive"
-              }`}
-            >
-              {shapeAnalysis.isValid
-                ? "Grid warnings:"
-                : "Fix these grid issues before generating:"}
-            </p>
-            <ul className="mt-2 space-y-1 text-sm font-sans">
-              {shapeAnalysis.issues.map((issue) => (
-                <li
-                  key={`${issue.code}:${issue.message}`}
-                  className={
-                    issue.severity === "error"
-                      ? "text-destructive"
-                      : "text-muted-foreground"
-                  }
-                >
-                  - {issue.message}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Error message */}
-        {maybeError && (
-          <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive/20 animate-fade-in">
-            <p className="text-sm font-sans">{maybeError}</p>
           </div>
         )}
 
