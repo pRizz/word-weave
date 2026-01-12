@@ -1,3 +1,10 @@
+export type CrosswordFillOptions = Readonly<{
+  minWordLength?: number;
+  allowReuseWords?: boolean;
+  randomizeCandidates?: boolean;
+  maxSteps?: number;
+}>;
+
 type Coord = Readonly<{ r: number; c: number }>;
 type Dir = "across" | "down";
 
@@ -8,66 +15,124 @@ type Slot = Readonly<{
   length: number;
 }>;
 
-type FillResult = Readonly<{
-  grid: string[][];
-  assignments: Map<string, string>;
+export type DictionaryIndex = Readonly<{
+  normalizedWords: ReadonlyArray<string>;
+  wordsByLength: ReadonlyMap<number, ReadonlyArray<string>>;
 }>;
 
-export type CrosswordFillOptions = Readonly<{
-  minWordLength?: number;
-  allowReuseWords?: boolean;
-  randomizeCandidates?: boolean;
-  maxSteps?: number;
-}>;
+export function buildDictionaryIndex(
+  dictionary: ReadonlyArray<string>,
+): DictionaryIndex {
+  const normalizedWords = normalizeDictionary(dictionary);
+  const wordsByLength = indexByLength(normalizedWords);
+  return { normalizedWords, wordsByLength };
+}
+
+export type FillCrosswordOutcome =
+  | Readonly<{
+      ok: true;
+      grid: string[][];
+      assignments: Map<string, string>;
+      steps: number;
+    }>
+  | Readonly<{
+      ok: false;
+      reason: string;
+      steps: number;
+    }>;
+
+export type FillCrosswordProgressCallback = (
+  steps: number,
+  partialGrid: string[][],
+) => boolean;
 
 export function fillCrossword(
   shape: boolean[][],
   dictionary: ReadonlyArray<string>,
   options: CrosswordFillOptions = {},
-): FillResult | null {
+  onProgress?: FillCrosswordProgressCallback,
+): FillCrosswordOutcome {
   const minWordLength = options.minWordLength ?? 2;
   const allowReuseWords = options.allowReuseWords ?? false;
   const randomizeCandidates = options.randomizeCandidates ?? true;
   const maxSteps = options.maxSteps ?? 2_000_000;
+  const progressInterval = 100;
 
-  const normalized = normalizeDictionary(dictionary);
-  const dictByLen = indexByLength(normalized);
+  const { wordsByLength } = buildDictionaryIndex(dictionary);
 
   const height = shape.length;
-  if (height === 0) return null;
-  const width = shape[0]?.length ?? 0;
+  if (height === 0) return { ok: false, reason: "Empty shape: height is 0", steps: 0 };
 
-  if (!isRect(shape)) return null;
+  if (!isRect(shape)) {
+    return {
+      ok: false,
+      reason: "Non-rectangular shape: rows have different widths",
+      steps: 0,
+    };
+  }
 
   const slots = extractSlots(shape, minWordLength);
-  if (slots.length === 0) return null;
+  if (slots.length === 0) {
+    return {
+      ok: false,
+      reason: `No valid slots found (min word length: ${minWordLength})`,
+      steps: 0,
+    };
+  }
 
   const grid = makeEmptyGrid(shape);
   const assignments = new Map<string, string>();
   const usedWords = new Set<string>();
 
   let steps = 0;
+  let maybeFailureReason: string | null = null;
 
-  const result = backtrack();
-  return result;
+  const solved = backtrack();
+  if (solved) {
+    return {
+      ok: true,
+      grid: cloneGrid(grid),
+      assignments: new Map(assignments),
+      steps,
+    };
+  }
 
-  function backtrack(): FillResult | null {
+  return {
+    ok: false,
+    reason:
+      maybeFailureReason ??
+      `Could not find a valid solution after ${steps.toLocaleString()} steps. The grid pattern may be too constrained.`,
+    steps,
+  };
+
+  function backtrack(): boolean {
     steps++;
-    if (steps > maxSteps) return null;
+    if (steps > maxSteps) {
+      maybeFailureReason = `Maximum steps exceeded: ${maxSteps.toLocaleString()} steps reached without finding a solution`;
+      return false;
+    }
+
+    if (onProgress && steps % progressInterval === 0) {
+      const shouldContinue = onProgress(steps, grid);
+      if (!shouldContinue) {
+        maybeFailureReason = "Generation was cancelled";
+        return false;
+      }
+    }
 
     if (assignments.size === slots.length) {
-      return { grid: cloneGrid(grid), assignments: new Map(assignments) };
+      return true;
     }
 
     const next = pickNextSlot(
       slots,
       assignments,
       grid,
-      dictByLen,
+      wordsByLength,
       usedWords,
       allowReuseWords,
     );
-    if (!next) return null;
+    if (!next) return false;
 
     const { slot, candidates } = next;
     const ordered = randomizeCandidates ? shuffled(candidates) : candidates;
@@ -81,15 +146,15 @@ export function fillCrossword(
       assignments.set(slot.id, word);
       usedWords.add(word);
 
-      const solved = backtrack();
-      if (solved) return solved;
+      const solvedInner = backtrack();
+      if (solvedInner) return true;
 
       assignments.delete(slot.id);
       if (!allowReuseWords) usedWords.delete(word);
       undoPlacement(grid, placed);
     }
 
-    return null;
+    return false;
   }
 }
 
@@ -142,18 +207,12 @@ function pickNextSlot(
     if (assignments.has(slot.id)) continue;
 
     const candidates = getCandidatesForSlot(slot, grid, dictByLen);
-    if (candidates.length === 0) {
-      console.error(`No candidates found for slot ${slot.id}`);
-      return null;
-    }
+    if (candidates.length === 0) return null;
     const filtered = allowReuseWords
       ? candidates
       : candidates.filter((w) => !usedWords.has(w));
 
-    if (filtered.length === 0) {
-      console.error(`No filtered candidates found for slot ${slot.id}`);
-      return null;
-    }
+    if (filtered.length === 0) return null;
 
     if (!bestSlot) {
       bestSlot = slot;
@@ -294,6 +353,202 @@ function shuffled<T>(arr: ReadonlyArray<T>): T[] {
     a[j] = tmp;
   }
   return a;
+}
+
+export type CrosswordShapeIssueSeverity = "error" | "warning";
+export type CrosswordShapeIssueCode =
+  | "empty_shape"
+  | "non_rectangular"
+  | "no_slots"
+  | "orphan_cells"
+  | "no_candidates_for_slot_length"
+  | "not_enough_unique_words_for_length"
+  | "disconnected_components";
+
+export type CrosswordShapeIssue = Readonly<{
+  code: CrosswordShapeIssueCode;
+  severity: CrosswordShapeIssueSeverity;
+  message: string;
+}>;
+
+export type CrosswordShapeAnalysis = Readonly<{
+  isValid: boolean;
+  issues: ReadonlyArray<CrosswordShapeIssue>;
+  slotCount: number;
+}>;
+
+export function analyzeCrosswordShape(params: Readonly<{
+  shape: boolean[][];
+  dictionaryIndex: DictionaryIndex;
+  minWordLength: number;
+  allowReuseWords: boolean;
+}>): CrosswordShapeAnalysis {
+  const { shape, dictionaryIndex, minWordLength, allowReuseWords } = params;
+
+  const issues: CrosswordShapeIssue[] = [];
+
+  const height = shape.length;
+  if (height === 0) {
+    issues.push({
+      code: "empty_shape",
+      severity: "error",
+      message: "Grid is empty.",
+    });
+    return { isValid: false, issues, slotCount: 0 };
+  }
+
+  if (!isRect(shape)) {
+    issues.push({
+      code: "non_rectangular",
+      severity: "error",
+      message: "Grid rows are different widths (non-rectangular).",
+    });
+    return { isValid: false, issues, slotCount: 0 };
+  }
+
+  const slots = extractSlots(shape, minWordLength);
+  if (slots.length === 0) {
+    issues.push({
+      code: "no_slots",
+      severity: "error",
+      message: `No across/down word slots of length ≥ ${minWordLength}. Add more consecutive white squares.`,
+    });
+  }
+
+  const orphanCellCount = countOrphanCells(shape, slots);
+  if (orphanCellCount > 0) {
+    issues.push({
+      code: "orphan_cells",
+      severity: "error",
+      message: `${orphanCellCount} white cell(s) are not part of any across/down slot of length ≥ ${minWordLength}. Remove isolated singletons or extend them into real words.`,
+    });
+  }
+
+  const slotCountsByLength = countSlotsByLength(slots);
+  const noCandidateLengths: Array<{ length: number; slotCount: number }> = [];
+  const notEnoughWordsLengths: Array<{
+    length: number;
+    slotCount: number;
+    wordCount: number;
+  }> = [];
+
+  for (const [length, slotCount] of slotCountsByLength) {
+    const wordCount = dictionaryIndex.wordsByLength.get(length)?.length ?? 0;
+    if (wordCount === 0) {
+      noCandidateLengths.push({ length, slotCount });
+      continue;
+    }
+    if (!allowReuseWords && wordCount < slotCount) {
+      notEnoughWordsLengths.push({ length, slotCount, wordCount });
+    }
+  }
+
+  if (noCandidateLengths.length > 0) {
+    const details = noCandidateLengths
+      .sort((a, b) => a.length - b.length)
+      .map(
+        ({ length, slotCount }) =>
+          `${slotCount} slot(s) of length ${length} (0 words in dictionary)`,
+      )
+      .join("; ");
+    issues.push({
+      code: "no_candidates_for_slot_length",
+      severity: "error",
+      message: `Some slots have no candidates in the dictionary: ${details}.`,
+    });
+  }
+
+  if (notEnoughWordsLengths.length > 0) {
+    const details = notEnoughWordsLengths
+      .sort((a, b) => a.length - b.length)
+      .map(
+        ({ length, slotCount, wordCount }) =>
+          `${slotCount} slot(s) of length ${length} but only ${wordCount} unique word(s) available`,
+      )
+      .join("; ");
+    issues.push({
+      code: "not_enough_unique_words_for_length",
+      severity: "error",
+      message: `Reuse is disabled, but the dictionary doesn’t have enough unique words: ${details}.`,
+    });
+  }
+
+  const componentCount = countConnectedComponents(shape);
+  if (componentCount > 1) {
+    issues.push({
+      code: "disconnected_components",
+      severity: "warning",
+      message: `Your grid has ${componentCount} disconnected “islands” of white cells. This is allowed, but it often makes generation harder or creates odd puzzles.`,
+    });
+  }
+
+  const isValid = issues.every((i) => i.severity !== "error");
+  return { isValid, issues, slotCount: slots.length };
+}
+
+function countSlotsByLength(slots: ReadonlyArray<Slot>): Map<number, number> {
+  const m = new Map<number, number>();
+  for (const slot of slots) {
+    m.set(slot.length, (m.get(slot.length) ?? 0) + 1);
+  }
+  return m;
+}
+
+function countOrphanCells(shape: boolean[][], slots: ReadonlyArray<Slot>): number {
+  const covered = new Set<string>();
+  for (const slot of slots) {
+    for (const { r, c } of slot.cells) {
+      covered.add(`${r}:${c}`);
+    }
+  }
+
+  let orphanCount = 0;
+  for (let r = 0; r < shape.length; r++) {
+    const row = shape[r]!;
+    for (let c = 0; c < row.length; c++) {
+      if (!row[c]) continue;
+      if (!covered.has(`${r}:${c}`)) orphanCount++;
+    }
+  }
+  return orphanCount;
+}
+
+function countConnectedComponents(shape: boolean[][]): number {
+  const h = shape.length;
+  const w = shape[0]?.length ?? 0;
+
+  const visited: boolean[][] = shape.map((row) => row.map(() => false));
+  let components = 0;
+
+  for (let r = 0; r < h; r++) {
+    for (let c = 0; c < w; c++) {
+      if (!shape[r]![c]) continue;
+      if (visited[r]![c]) continue;
+
+      components++;
+      const queue: Array<{ r: number; c: number }> = [{ r, c }];
+      visited[r]![c] = true;
+
+      while (queue.length > 0) {
+        const cur = queue.pop()!;
+        const neighbors = [
+          { r: cur.r - 1, c: cur.c },
+          { r: cur.r + 1, c: cur.c },
+          { r: cur.r, c: cur.c - 1 },
+          { r: cur.r, c: cur.c + 1 },
+        ];
+        for (const n of neighbors) {
+          if (n.r < 0 || n.r >= h || n.c < 0 || n.c >= w) continue;
+          if (!shape[n.r]![n.c]) continue;
+          if (visited[n.r]![n.c]) continue;
+          visited[n.r]![n.c] = true;
+          queue.push(n);
+        }
+      }
+    }
+  }
+
+  return components;
 }
 
 export function getClueNumbers(shape: boolean[][]): Map<string, number> {

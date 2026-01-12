@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { CrosswordGrid } from "@/components/CrosswordGrid";
 import { CluesList } from "@/components/CluesList";
 import { Button } from "@/components/ui/button";
 import { useCrosswordWorker } from "@/hooks/useCrosswordWorker";
 import { DEFAULT_WORD_LIST, fetchDictionaryWords } from "@/lib/wordList";
+import { analyzeCrosswordShape, buildDictionaryIndex } from "@/lib/crosswordFill";
 import { DEFAULT_DICTIONARY_CONFIG } from "@/config/dictionary";
 import { Sparkles, RotateCcw, Grid3X3, Loader2, X } from "lucide-react";
 
@@ -60,6 +61,22 @@ export default function Index() {
 
   const { generate, cancel, isGenerating, progress } = useCrosswordWorker();
 
+  const dictionaryIndex = useMemo(
+    () => buildDictionaryIndex(dictionary),
+    [dictionary],
+  );
+
+  const shapeAnalysis = useMemo(
+    () =>
+      analyzeCrosswordShape({
+        shape,
+        dictionaryIndex,
+        minWordLength: DEFAULT_DICTIONARY_CONFIG.minWordLength,
+        allowReuseWords: false,
+      }),
+    [shape, dictionaryIndex],
+  );
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -111,6 +128,15 @@ export default function Index() {
     setError(null);
     setGenerationStats(null);
 
+    if (!shapeAnalysis.isValid) {
+      const blocking = shapeAnalysis.issues.filter((i) => i.severity === "error");
+      setError(
+        blocking[0]?.message ??
+          "This grid has issues that prevent generation. Fix the grid and try again.",
+      );
+      return;
+    }
+
     try {
       const result = await generate(shape, dictionary, {
         minWordLength: DEFAULT_DICTIONARY_CONFIG.minWordLength,
@@ -144,7 +170,7 @@ export default function Index() {
       setError(errorMessage);
       console.error(`[Crossword Generation Exception] ${errorMessage}`, e);
     }
-  }, [shape, dictionary, generate]);
+  }, [shape, dictionary, generate, shapeAnalysis]);
 
   const handleCancel = useCallback(() => {
     cancel();
@@ -243,7 +269,7 @@ export default function Index() {
             ) : (
               <Button
                 onClick={handleGenerate}
-                disabled={isDictionaryLoading}
+                disabled={isDictionaryLoading || !shapeAnalysis.isValid}
                 className="font-sans flex-shrink-0"
                 size="sm"
               >
@@ -298,6 +324,41 @@ export default function Index() {
               cells to toggle between white (letters) and black (blocked). Then
               click "Generate Puzzle" to fill it with words.
             </p>
+          </div>
+        )}
+
+        {/* Live grid validation */}
+        {isEditing && !isGenerating && shapeAnalysis.issues.length > 0 && (
+          <div
+            className={`mb-6 p-4 rounded-lg border animate-fade-in ${
+              shapeAnalysis.isValid
+                ? "bg-primary/5 border-primary/20"
+                : "bg-destructive/10 border-destructive/20"
+            }`}
+          >
+            <p
+              className={`text-sm font-sans ${
+                shapeAnalysis.isValid ? "text-foreground" : "text-destructive"
+              }`}
+            >
+              {shapeAnalysis.isValid
+                ? "Grid warnings:"
+                : "Fix these grid issues before generating:"}
+            </p>
+            <ul className="mt-2 space-y-1 text-sm font-sans">
+              {shapeAnalysis.issues.map((issue) => (
+                <li
+                  key={`${issue.code}:${issue.message}`}
+                  className={
+                    issue.severity === "error"
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                  }
+                >
+                  - {issue.message}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
