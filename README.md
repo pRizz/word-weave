@@ -9,6 +9,8 @@ An interactive web application for generating crossword puzzles. Design custom g
 
 🌐 **Live Demo**: [https://crossword-puzzle-generator5.lovable.app](https://crossword-puzzle-generator5.lovable.app)
 
+![Word Weave - Crossword Generator](docs/images/example.png)
+
 ## Features
 
 - 🎨 **Custom Grid Design**: Click cells to toggle between white (letter cells) and black (blocked cells)
