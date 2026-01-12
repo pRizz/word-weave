@@ -4,6 +4,7 @@ import { CluesList } from "@/components/CluesList";
 import { Button } from "@/components/ui/button";
 import { useCrosswordWorker } from "@/hooks/useCrosswordWorker";
 import { DEFAULT_WORD_LIST, fetchDictionaryWords } from "@/lib/wordList";
+import { DEFAULT_DICTIONARY_CONFIG } from "@/config/dictionary";
 import { Sparkles, RotateCcw, Grid3X3, Loader2, X } from "lucide-react";
 
 const GRID_PRESETS = {
@@ -21,7 +22,9 @@ function createDefaultShape(size: number): boolean[][] {
     for (let c = 0; c < size; c++) {
       // Create some black squares for visual interest (symmetric pattern)
       const isBlack =
-        (size >= 7 && r === Math.floor(size / 2) && c === Math.floor(size / 2)) ||
+        (size >= 7 &&
+          r === Math.floor(size / 2) &&
+          c === Math.floor(size / 2)) ||
         (size >= 9 && r === 1 && c === 1) ||
         (size >= 9 && r === 1 && c === size - 2) ||
         (size >= 9 && r === size - 2 && c === 1) ||
@@ -40,17 +43,20 @@ function createDefaultShape(size: number): boolean[][] {
 export default function Index() {
   const [gridSize, setGridSize] = useState<keyof typeof GRID_PRESETS>("medium");
   const [shape, setShape] = useState<boolean[][]>(() =>
-    createDefaultShape(GRID_PRESETS.medium.size)
+    createDefaultShape(GRID_PRESETS.medium.size),
   );
   const [dictionary, setDictionary] = useState<string[]>(DEFAULT_WORD_LIST);
   const [filledGrid, setFilledGrid] = useState<string[][] | null>(null);
   const [assignments, setAssignments] = useState<Map<string, string>>(
-    new Map()
+    new Map(),
   );
   const [isDictionaryLoading, setIsDictionaryLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [generationStats, setGenerationStats] = useState<{ elapsedMs: number; backtracks: number } | null>(null);
+  const [generationStats, setGenerationStats] = useState<{
+    elapsedMs: number;
+    backtracks: number;
+  } | null>(null);
 
   const { generate, cancel, isGenerating, progress } = useCrosswordWorker();
 
@@ -89,7 +95,7 @@ export default function Index() {
       setAssignments(new Map());
       setError(null);
     },
-    [isEditing, isGenerating]
+    [isEditing, isGenerating],
   );
 
   const handleGridSizeChange = (size: keyof typeof GRID_PRESETS) => {
@@ -107,7 +113,7 @@ export default function Index() {
 
     try {
       const result = await generate(shape, dictionary, {
-        minWordLength: 2,
+        minWordLength: DEFAULT_DICTIONARY_CONFIG.minWordLength,
         allowReuseWords: false,
         randomizeCandidates: true,
         maxSteps: 500000,
@@ -117,10 +123,13 @@ export default function Index() {
         setFilledGrid(result.grid);
         setAssignments(result.assignments);
         setIsEditing(false);
-        setGenerationStats({ elapsedMs: result.elapsedMs, backtracks: result.backtracks });
+        setGenerationStats({
+          elapsedMs: result.elapsedMs,
+          backtracks: result.backtracks,
+        });
       } else {
         setError(
-          "Couldn't fill this grid pattern. Try adjusting the black squares or using a different layout."
+          "Couldn't fill this grid pattern. Try adjusting the black squares or using a different layout.",
         );
       }
     } catch (e) {
@@ -251,12 +260,21 @@ export default function Index() {
             <div className="flex items-center gap-3">
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
               <div className="text-sm font-sans">
-                <span className="font-medium text-foreground">Generating...</span>
-                <span className="text-muted-foreground ml-2">
-                  <span className="font-mono tabular-nums">{progress.steps.toLocaleString()}</span> backtracks
+                <span className="font-medium text-foreground">
+                  Generating...
                 </span>
                 <span className="text-muted-foreground ml-2">
-                  (<span className="font-mono tabular-nums">{(progress.elapsedMs / 1000).toFixed(1)}</span>s)
+                  <span className="font-mono tabular-nums">
+                    {progress.steps.toLocaleString()}
+                  </span>{" "}
+                  backtracks
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  (
+                  <span className="font-mono tabular-nums">
+                    {(progress.elapsedMs / 1000).toFixed(1)}
+                  </span>
+                  s)
                 </span>
               </div>
             </div>
@@ -285,13 +303,19 @@ export default function Index() {
         <div className="grid lg:grid-cols-[auto_1fr] gap-8 items-start">
           {/* Grid */}
           <div className="flex justify-center lg:justify-start">
-            <div className={`animate-scale-in ${isGenerating ? 'relative' : ''}`}>
+            <div
+              className={`animate-scale-in ${isGenerating ? "relative" : ""}`}
+            >
               {isGenerating && (
                 <div className="absolute inset-0 bg-primary/5 rounded-lg pointer-events-none z-10 animate-pulse" />
               )}
               <CrosswordGrid
                 shape={shape}
-                filledGrid={isGenerating && progress?.partialGrid ? progress.partialGrid : filledGrid}
+                filledGrid={
+                  isGenerating && progress?.partialGrid
+                    ? progress.partialGrid
+                    : filledGrid
+                }
                 onCellClick={handleCellClick}
                 isEditing={isEditing && !isGenerating}
                 cellSize={Math.min(45, Math.max(32, 400 / shape.length))}

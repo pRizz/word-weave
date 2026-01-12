@@ -1,0 +1,2 @@
+https://github.com/nzfeng/crossword-dataset/blob/main/raw/core.txt
+We must treat underscores and dashes as non-letter characters.
