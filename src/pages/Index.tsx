@@ -165,9 +165,9 @@ export default function Index() {
 
       <main className="container max-w-5xl mx-auto px-4 py-8">
         {/* Controls */}
-        <div className="flex flex-wrap items-center gap-3 mb-8">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-sans text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8 overflow-hidden">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-sm font-sans text-muted-foreground whitespace-nowrap">
               Grid size:
             </span>
             <div className="flex gap-1">
@@ -179,7 +179,7 @@ export default function Index() {
                   onClick={() =>
                     handleGridSizeChange(key as keyof typeof GRID_PRESETS)
                   }
-                  className="font-sans"
+                  className="font-sans px-2 sm:px-3"
                 >
                   {preset.name}
                 </Button>
@@ -187,17 +187,17 @@ export default function Index() {
             </div>
           </div>
 
-          <div className="flex-1" />
+          <div className="hidden sm:block flex-1" />
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
               size="sm"
               onClick={handleReset}
-              className="font-sans"
+              className="font-sans flex-shrink-0"
             >
               <RotateCcw className="w-4 h-4 mr-1.5" />
-              Reset Grid
+              Reset
             </Button>
 
             {filledGrid && (
@@ -205,10 +205,10 @@ export default function Index() {
                 variant="secondary"
                 size="sm"
                 onClick={handleClear}
-                className="font-sans"
+                className="font-sans flex-shrink-0"
               >
                 <Grid3X3 className="w-4 h-4 mr-1.5" />
-                Edit Grid
+                Edit
               </Button>
             )}
 
@@ -216,7 +216,7 @@ export default function Index() {
               <Button
                 onClick={handleCancel}
                 variant="destructive"
-                className="font-sans"
+                className="font-sans flex-shrink-0"
                 size="sm"
               >
                 <X className="w-4 h-4 mr-1.5" />
@@ -226,18 +226,18 @@ export default function Index() {
               <Button
                 onClick={handleGenerate}
                 disabled={isDictionaryLoading}
-                className="font-sans"
+                className="font-sans flex-shrink-0"
                 size="sm"
               >
                 {isDictionaryLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                    Loading words...
+                    Loading...
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-1.5" />
-                    Generate Puzzle
+                    Generate
                   </>
                 )}
               </Button>
