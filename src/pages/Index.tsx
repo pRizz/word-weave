@@ -127,13 +127,22 @@ export default function Index() {
           elapsedMs: result.elapsedMs,
           backtracks: result.backtracks,
         });
-      } else {
-        setError(
-          "Couldn't fill this grid pattern. Try adjusting the black squares or using a different layout.",
-        );
+        return;
+      }
+      const errorMessage = result.errorReason
+        ? `Couldn't fill this grid pattern: ${result.errorReason}`
+        : "Couldn't fill this grid pattern. Try adjusting the black squares or using a different layout.";
+      setError(errorMessage);
+      if (result.errorReason) {
+        console.error(`[Crossword Generation Failed] ${result.errorReason}`);
       }
     } catch (e) {
-      setError("An error occurred while generating the puzzle.");
+      const errorMessage =
+        e instanceof Error
+          ? e.message
+          : "An error occurred while generating the puzzle.";
+      setError(errorMessage);
+      console.error(`[Crossword Generation Exception] ${errorMessage}`, e);
     }
   }, [shape, dictionary, generate]);
 

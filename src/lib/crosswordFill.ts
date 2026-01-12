@@ -59,7 +59,14 @@ export function fillCrossword(
       return { grid: cloneGrid(grid), assignments: new Map(assignments) };
     }
 
-    const next = pickNextSlot(slots, assignments, grid, dictByLen, usedWords, allowReuseWords);
+    const next = pickNextSlot(
+      slots,
+      assignments,
+      grid,
+      dictByLen,
+      usedWords,
+      allowReuseWords,
+    );
     if (!next) return null;
 
     const { slot, candidates } = next;
@@ -111,7 +118,10 @@ function tryPlaceWord(
   return changes;
 }
 
-function undoPlacement(grid: string[][], changes: ReadonlyArray<{ r: number; c: number; prev: string }>): void {
+function undoPlacement(
+  grid: string[][],
+  changes: ReadonlyArray<{ r: number; c: number; prev: string }>,
+): void {
   for (const { r, c, prev } of changes) {
     grid[r]![c] = prev;
   }
@@ -132,9 +142,18 @@ function pickNextSlot(
     if (assignments.has(slot.id)) continue;
 
     const candidates = getCandidatesForSlot(slot, grid, dictByLen);
-    const filtered = allowReuseWords ? candidates : candidates.filter(w => !usedWords.has(w));
+    if (candidates.length === 0) {
+      console.error(`No candidates found for slot ${slot.id}`);
+      return null;
+    }
+    const filtered = allowReuseWords
+      ? candidates
+      : candidates.filter((w) => !usedWords.has(w));
 
-    if (filtered.length === 0) return null;
+    if (filtered.length === 0) {
+      console.error(`No filtered candidates found for slot ${slot.id}`);
+      return null;
+    }
 
     if (!bestSlot) {
       bestSlot = slot;
@@ -160,10 +179,13 @@ function getCandidatesForSlot(
   const words = dictByLen.get(slot.length) ?? [];
   const constraints = slot.cells.map(({ r, c }) => grid[r]![c]!);
 
-  return words.filter(w => matchesConstraints(w, constraints));
+  return words.filter((w) => matchesConstraints(w, constraints));
 }
 
-function matchesConstraints(word: string, constraints: ReadonlyArray<string>): boolean {
+function matchesConstraints(
+  word: string,
+  constraints: ReadonlyArray<string>,
+): boolean {
   for (let i = 0; i < constraints.length; i++) {
     const want = constraints[i]!;
     if (want === "") continue;
@@ -184,8 +206,13 @@ function extractSlots(shape: boolean[][], minLen: number): Slot[] {
       while (c < w && shape[r]![c]!) c++;
       const runLen = c - start;
       if (runLen >= minLen) {
-        const cells = range(runLen).map(i => ({ r, c: start + i }));
-        slots.push({ id: `A:${r}:${start}`, dir: "across", cells, length: runLen });
+        const cells = range(runLen).map((i) => ({ r, c: start + i }));
+        slots.push({
+          id: `A:${r}:${start}`,
+          dir: "across",
+          cells,
+          length: runLen,
+        });
       }
       c++;
     }
@@ -198,8 +225,13 @@ function extractSlots(shape: boolean[][], minLen: number): Slot[] {
       while (r < h && shape[r]![c]!) r++;
       const runLen = r - start;
       if (runLen >= minLen) {
-        const cells = range(runLen).map(i => ({ r: start + i, c }));
-        slots.push({ id: `D:${start}:${c}`, dir: "down", cells, length: runLen });
+        const cells = range(runLen).map((i) => ({ r: start + i, c }));
+        slots.push({
+          id: `D:${start}:${c}`,
+          dir: "down",
+          cells,
+          length: runLen,
+        });
       }
       r++;
     }
@@ -209,11 +241,11 @@ function extractSlots(shape: boolean[][], minLen: number): Slot[] {
 }
 
 function makeEmptyGrid(shape: boolean[][]): string[][] {
-  return shape.map(row => row.map(cell => (cell ? "" : "#")));
+  return shape.map((row) => row.map((cell) => (cell ? "" : "#")));
 }
 
 function cloneGrid(grid: string[][]): string[][] {
-  return grid.map(row => row.slice());
+  return grid.map((row) => row.slice());
 }
 
 function normalizeDictionary(words: ReadonlyArray<string>): string[] {
@@ -273,10 +305,12 @@ export function getClueNumbers(shape: boolean[][]): Map<string, number> {
   for (let r = 0; r < h; r++) {
     for (let c = 0; c < w; c++) {
       if (!shape[r]![c]) continue;
-      
-      const isAcrossStart = (c === 0 || !shape[r]![c - 1]) && (c + 1 < w && shape[r]![c + 1]);
-      const isDownStart = (r === 0 || !shape[r - 1]?.[c]) && (r + 1 < h && shape[r + 1]?.[c]);
-      
+
+      const isAcrossStart =
+        (c === 0 || !shape[r]![c - 1]) && c + 1 < w && shape[r]![c + 1];
+      const isDownStart =
+        (r === 0 || !shape[r - 1]?.[c]) && r + 1 < h && shape[r + 1]?.[c];
+
       if (isAcrossStart || isDownStart) {
         clueNumbers.set(`${r}:${c}`, num);
         num++;
