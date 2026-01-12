@@ -103,15 +103,22 @@ function tryPlaceWord(
   const changes: Array<{ r: number; c: number; prev: string }> = [];
 
   for (let i = 0; i < slot.cells.length; i++) {
-    const { r, c } = slot.cells[i]!;
-    const existing = grid[r]![c]!;
-    const ch = word[i]!;
+    const maybeCell = slot.cells[i];
+    if (!maybeCell) continue;
+    const { r, c } = maybeCell;
+
+    const maybeRow = grid[r];
+    if (!maybeRow) return null;
+
+    const existing = maybeRow[c] ?? "";
+    const ch = word[i];
+    if (!ch) continue;
     if (existing !== "" && existing !== ch) {
       return null;
     }
     if (existing === "") {
       changes.push({ r, c, prev: existing });
-      grid[r]![c] = ch;
+      maybeRow[c] = ch;
     }
   }
 
@@ -123,7 +130,9 @@ function undoPlacement(
   changes: ReadonlyArray<{ r: number; c: number; prev: string }>,
 ): void {
   for (const { r, c, prev } of changes) {
-    grid[r]![c] = prev;
+    const maybeRow = grid[r];
+    if (!maybeRow) continue;
+    maybeRow[c] = prev;
   }
 }
 
@@ -177,7 +186,7 @@ function getCandidatesForSlot(
   dictByLen: ReadonlyMap<number, ReadonlyArray<string>>,
 ): string[] {
   const words = dictByLen.get(slot.length) ?? [];
-  const constraints = slot.cells.map(({ r, c }) => grid[r]![c]!);
+  const constraints = slot.cells.map(({ r, c }) => grid[r]?.[c] ?? "");
 
   return words.filter((w) => matchesConstraints(w, constraints));
 }
@@ -197,13 +206,18 @@ function matchesConstraints(
 function extractSlots(shape: boolean[][], minLen: number): Slot[] {
   const slots: Slot[] = [];
   const h = shape.length;
-  const w = shape[0]!.length;
+  if (h === 0) return slots;
+  const maybeFirstRow = shape[0];
+  if (!maybeFirstRow) return slots;
+  const w = maybeFirstRow.length;
 
   for (let r = 0; r < h; r++) {
+    const maybeRow = shape[r];
+    if (!maybeRow) continue;
     let c = 0;
     while (c < w) {
       const start = c;
-      while (c < w && shape[r]![c]!) c++;
+      while (c < w && maybeRow[c] === true) c++;
       const runLen = c - start;
       if (runLen >= minLen) {
         const cells = range(runLen).map((i) => ({ r, c: start + i }));
@@ -222,7 +236,12 @@ function extractSlots(shape: boolean[][], minLen: number): Slot[] {
     let r = 0;
     while (r < h) {
       const start = r;
-      while (r < h && shape[r]![c]!) r++;
+      while (r < h) {
+        const maybeRow = shape[r];
+        if (!maybeRow) break;
+        if (maybeRow[c] !== true) break;
+        r++;
+      }
       const runLen = r - start;
       if (runLen >= minLen) {
         const cells = range(runLen).map((i) => ({ r: start + i, c }));

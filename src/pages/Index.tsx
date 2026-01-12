@@ -46,19 +46,22 @@ export default function Index() {
     createDefaultShape(GRID_PRESETS.medium.size),
   );
   const [dictionary, setDictionary] = useState<string[]>(DEFAULT_WORD_LIST);
-  const [filledGrid, setFilledGrid] = useState<string[][] | null>(null);
+  const [maybeFilledGrid, setMaybeFilledGrid] = useState<string[][] | null>(
+    null,
+  );
   const [assignments, setAssignments] = useState<Map<string, string>>(
     new Map(),
   );
   const [isDictionaryLoading, setIsDictionaryLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [generationStats, setGenerationStats] = useState<{
+  const [maybeError, setMaybeError] = useState<string | null>(null);
+  const [maybeGenerationStats, setMaybeGenerationStats] = useState<{
     elapsedMs: number;
     backtracks: number;
   } | null>(null);
 
-  const { generate, cancel, isGenerating, progress } = useCrosswordWorker();
+  const { generate, cancel, isGenerating, progress: maybeProgress } =
+    useCrosswordWorker();
 
   useEffect(() => {
     let isCancelled = false;
@@ -91,9 +94,9 @@ export default function Index() {
         newShape[row]![col] = !newShape[row]![col];
         return newShape;
       });
-      setFilledGrid(null);
+      setMaybeFilledGrid(null);
       setAssignments(new Map());
-      setError(null);
+      setMaybeError(null);
     },
     [isEditing, isGenerating],
   );
@@ -101,15 +104,15 @@ export default function Index() {
   const handleGridSizeChange = (size: keyof typeof GRID_PRESETS) => {
     setGridSize(size);
     setShape(createDefaultShape(GRID_PRESETS[size].size));
-    setFilledGrid(null);
+    setMaybeFilledGrid(null);
     setAssignments(new Map());
-    setError(null);
+    setMaybeError(null);
     setIsEditing(true);
   };
 
   const handleGenerate = useCallback(async () => {
-    setError(null);
-    setGenerationStats(null);
+    setMaybeError(null);
+    setMaybeGenerationStats(null);
 
     try {
       const result = await generate(shape, dictionary, {
@@ -120,28 +123,30 @@ export default function Index() {
       });
 
       if (result.grid && result.assignments) {
-        setFilledGrid(result.grid);
+        setMaybeFilledGrid(result.grid);
         setAssignments(result.assignments);
         setIsEditing(false);
-        setGenerationStats({
+        setMaybeGenerationStats({
           elapsedMs: result.elapsedMs,
           backtracks: result.backtracks,
         });
         return;
       }
-      const errorMessage = result.errorReason
-        ? `Couldn't fill this grid pattern: ${result.errorReason}`
+      const errorMessage = result.maybeErrorReason
+        ? `Couldn't fill this grid pattern: ${result.maybeErrorReason}`
         : "Couldn't fill this grid pattern. Try adjusting the black squares or using a different layout.";
-      setError(errorMessage);
-      if (result.errorReason) {
-        console.error(`[Crossword Generation Failed] ${result.errorReason}`);
+      setMaybeError(errorMessage);
+      if (result.maybeErrorReason) {
+        console.error(
+          `[Crossword Generation Failed] ${result.maybeErrorReason}`,
+        );
       }
     } catch (e) {
       const errorMessage =
         e instanceof Error
           ? e.message
           : "An error occurred while generating the puzzle.";
-      setError(errorMessage);
+      setMaybeError(errorMessage);
       console.error(`[Crossword Generation Exception] ${errorMessage}`, e);
     }
   }, [shape, dictionary, generate]);
@@ -152,19 +157,19 @@ export default function Index() {
 
   const handleReset = () => {
     setShape(createDefaultShape(GRID_PRESETS[gridSize].size));
-    setFilledGrid(null);
+    setMaybeFilledGrid(null);
     setAssignments(new Map());
-    setError(null);
+    setMaybeError(null);
     setIsEditing(true);
-    setGenerationStats(null);
+    setMaybeGenerationStats(null);
   };
 
   const handleClear = () => {
-    setFilledGrid(null);
+    setMaybeFilledGrid(null);
     setAssignments(new Map());
-    setError(null);
+    setMaybeError(null);
     setIsEditing(true);
-    setGenerationStats(null);
+    setMaybeGenerationStats(null);
   };
 
   return (
@@ -218,7 +223,7 @@ export default function Index() {
               Reset
             </Button>
 
-            {filledGrid && (
+            {maybeFilledGrid && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -264,7 +269,7 @@ export default function Index() {
         </div>
 
         {/* Progress indicator */}
-        {isGenerating && progress && (
+        {isGenerating && maybeProgress && (
           <div className="mb-6 p-4 bg-primary/10 rounded-lg border border-primary/20 animate-fade-in">
             <div className="flex items-center gap-3">
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -274,14 +279,14 @@ export default function Index() {
                 </span>
                 <span className="text-muted-foreground ml-2">
                   <span className="font-mono tabular-nums">
-                    {progress.steps.toLocaleString()}
+                    {maybeProgress.steps.toLocaleString()}
                   </span>{" "}
                   backtracks
                 </span>
                 <span className="text-muted-foreground ml-2">
                   (
                   <span className="font-mono tabular-nums">
-                    {(progress.elapsedMs / 1000).toFixed(1)}
+                    {(maybeProgress.elapsedMs / 1000).toFixed(1)}
                   </span>
                   s)
                 </span>
@@ -291,7 +296,7 @@ export default function Index() {
         )}
 
         {/* Instructions */}
-        {isEditing && !filledGrid && !isGenerating && (
+        {isEditing && !maybeFilledGrid && !isGenerating && (
           <div className="mb-6 p-4 bg-secondary/50 rounded-lg border border-border animate-fade-in">
             <p className="text-sm font-sans text-muted-foreground">
               <span className="font-medium text-foreground">Tip:</span> Click
@@ -302,9 +307,9 @@ export default function Index() {
         )}
 
         {/* Error message */}
-        {error && (
+        {maybeError && (
           <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive/20 animate-fade-in">
-            <p className="text-sm font-sans">{error}</p>
+            <p className="text-sm font-sans">{maybeError}</p>
           </div>
         )}
 
@@ -321,9 +326,9 @@ export default function Index() {
               <CrosswordGrid
                 shape={shape}
                 filledGrid={
-                  isGenerating && progress?.partialGrid
-                    ? progress.partialGrid
-                    : filledGrid
+                  isGenerating && maybeProgress?.partialGrid
+                    ? maybeProgress.partialGrid
+                    : maybeFilledGrid
                 }
                 onCellClick={handleCellClick}
                 isEditing={isEditing && !isGenerating}
@@ -331,7 +336,7 @@ export default function Index() {
                 tooltipMessage={
                   isGenerating
                     ? "Stop generation to edit the grid"
-                    : filledGrid
+                    : maybeFilledGrid
                       ? "Reset the grid to edit it"
                       : undefined
                 }
@@ -340,7 +345,7 @@ export default function Index() {
           </div>
 
           {/* Clues */}
-          {filledGrid && assignments.size > 0 && (
+          {maybeFilledGrid && assignments.size > 0 && (
             <div className="bg-card p-6 rounded-lg border border-border shadow-soft animate-fade-in">
               <h2 className="text-2xl font-serif font-semibold mb-4 text-foreground">
                 Words Used
@@ -351,7 +356,7 @@ export default function Index() {
         </div>
 
         {/* Stats */}
-        {filledGrid && (
+        {maybeFilledGrid && (
           <div className="mt-8 pt-6 border-t border-border animate-fade-in">
             <div className="flex flex-wrap gap-6 text-sm font-sans text-muted-foreground">
               <div>
@@ -372,17 +377,17 @@ export default function Index() {
                 </span>{" "}
                 grid
               </div>
-              {generationStats && (
+              {maybeGenerationStats && (
                 <>
                   <div>
                     <span className="text-foreground font-medium font-mono tabular-nums">
-                      {(generationStats.elapsedMs / 1000).toFixed(2)}s
+                      {(maybeGenerationStats.elapsedMs / 1000).toFixed(2)}s
                     </span>{" "}
                     generation time
                   </div>
                   <div>
                     <span className="text-foreground font-medium font-mono tabular-nums">
-                      {generationStats.backtracks.toLocaleString()}
+                      {maybeGenerationStats.backtracks.toLocaleString()}
                     </span>{" "}
                     backtracks
                   </div>
