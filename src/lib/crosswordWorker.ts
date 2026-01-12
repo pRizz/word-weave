@@ -27,11 +27,15 @@ export type WorkerResponse =
       assignments: [string, string][] | null;
       elapsedMs: number;
       backtracks: number;
-      errorReason?: string;
+      maybeErrorReason?: string;
     }
   | { type: "error"; message: string };
 
 let cancelled = false;
+
+function postMessage(message: WorkerResponse): void {
+  self.postMessage(message);
+}
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   const msg = e.data;
@@ -57,12 +61,12 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         totalSteps = steps;
 
         const elapsedMs = performance.now() - startTime;
-        self.postMessage({
+        postMessage({
           type: "progress",
           steps,
           elapsedMs,
           partialGrid: cloneGrid(partialGrid),
-        } as WorkerResponse);
+        });
         return true;
       },
     );
@@ -72,31 +76,31 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
     const elapsedMs = performance.now() - startTime;
 
     if (result.ok) {
-      self.postMessage({
+      postMessage({
         type: "complete",
         grid: result.grid,
         assignments: Array.from(result.assignments.entries()),
         elapsedMs,
         backtracks: result.steps,
-      } as WorkerResponse);
+      });
       return;
     }
 
     const errorReason = result.reason;
     console.error(`[Crossword Generation Failed] ${errorReason}`);
-    self.postMessage({
+    postMessage({
       type: "complete",
       grid: null,
       assignments: null,
       elapsedMs,
       backtracks: totalSteps,
-      errorReason,
-    } as WorkerResponse);
+      maybeErrorReason: errorReason,
+    });
   } catch (err) {
-    self.postMessage({
+    postMessage({
       type: "error",
       message: err instanceof Error ? err.message : "Unknown error",
-    } as WorkerResponse);
+    });
   }
 };
 

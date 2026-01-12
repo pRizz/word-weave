@@ -16,13 +16,15 @@ export interface GenerationResult {
   assignments: Map<string, string> | null;
   elapsedMs: number;
   backtracks: number;
-  errorReason?: string;
+  maybeErrorReason?: string;
 }
 
 export function useCrosswordWorker() {
   const workerRef = useRef<Worker | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState<GenerationProgress | null>(null);
+  const [maybeProgress, setMaybeProgress] = useState<GenerationProgress | null>(
+    null,
+  );
 
   const generate = useCallback(
     (
@@ -32,12 +34,13 @@ export function useCrosswordWorker() {
     ): Promise<GenerationResult> => {
       return new Promise((resolve, reject) => {
         // Clean up any existing worker
-        if (workerRef.current) {
-          workerRef.current.terminate();
+        const maybeExistingWorker = workerRef.current;
+        if (maybeExistingWorker) {
+          maybeExistingWorker.terminate();
         }
 
         setIsGenerating(true);
-        setProgress(null);
+        setMaybeProgress(null);
 
         // Create new worker
         const worker = new Worker(
@@ -50,19 +53,21 @@ export function useCrosswordWorker() {
           const msg = e.data;
 
           if (msg.type === "progress") {
-            setProgress({
+            setMaybeProgress({
               steps: msg.steps,
               elapsedMs: msg.elapsedMs,
               partialGrid: msg.partialGrid,
             });
           } else if (msg.type === "complete") {
             setIsGenerating(false);
-            setProgress(null);
+            setMaybeProgress(null);
             worker.terminate();
             workerRef.current = null;
 
-            if (msg.errorReason) {
-              console.error(`[Crossword Generation Failed] ${msg.errorReason}`);
+            if (msg.maybeErrorReason) {
+              console.error(
+                `[Crossword Generation Failed] ${msg.maybeErrorReason}`,
+              );
             }
 
             resolve({
@@ -70,11 +75,11 @@ export function useCrosswordWorker() {
               assignments: msg.assignments ? new Map(msg.assignments) : null,
               elapsedMs: msg.elapsedMs,
               backtracks: msg.backtracks,
-              errorReason: msg.errorReason,
+              maybeErrorReason: msg.maybeErrorReason,
             });
           } else if (msg.type === "error") {
             setIsGenerating(false);
-            setProgress(null);
+            setMaybeProgress(null);
             worker.terminate();
             workerRef.current = null;
             const errorMessage =
@@ -86,7 +91,7 @@ export function useCrosswordWorker() {
 
         worker.onerror = (err) => {
           setIsGenerating(false);
-          setProgress(null);
+          setMaybeProgress(null);
           worker.terminate();
           workerRef.current = null;
           const errorMessage =
@@ -109,12 +114,14 @@ export function useCrosswordWorker() {
   );
 
   const cancel = useCallback(() => {
-    if (workerRef.current) {
-      workerRef.current.postMessage({ type: "cancel" } as WorkerMessage);
-      workerRef.current.terminate();
+    const maybeWorker = workerRef.current;
+    if (maybeWorker) {
+      const cancelMessage: WorkerMessage = { type: "cancel" };
+      maybeWorker.postMessage(cancelMessage);
+      maybeWorker.terminate();
       workerRef.current = null;
       setIsGenerating(false);
-      setProgress(null);
+      setMaybeProgress(null);
     }
   }, []);
 
@@ -122,6 +129,6 @@ export function useCrosswordWorker() {
     generate,
     cancel,
     isGenerating,
-    progress,
+    progress: maybeProgress,
   };
 }
