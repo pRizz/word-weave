@@ -1,73 +1,120 @@
-# Welcome to your Lovable project
+# Word Weave - Crossword Generator
 
-## Project info
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)
+![React](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react)
+![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+An interactive web application for generating crossword puzzles. Design custom grid layouts and automatically fill them with words from a comprehensive dictionary using an intelligent backtracking algorithm.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- 🎨 **Custom Grid Design**: Click cells to toggle between white (letter cells) and black (blocked cells)
+- 📐 **Multiple Grid Sizes**: Choose from 5×5, 7×7, 9×9, or 11×11 grid presets
+- 🤖 **Intelligent Generation**: Uses a backtracking algorithm with web worker support for non-blocking puzzle generation
+- 📚 **Comprehensive Dictionary**: Loads from a normalized word list with 40,000+ words
+- 📊 **Real-time Progress**: View generation progress with backtrack counts and elapsed time
+- 🎯 **Word Tracking**: See all words used in the generated puzzle
+- 📱 **Responsive Design**: Modern UI built with shadcn/ui components and Tailwind CSS
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Frontend Framework**: React 18.3 with TypeScript
+- **Build Tool**: Vite 5.4
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **State Management**: React Hooks
+- **Web Workers**: For background puzzle generation
+- **Routing**: React Router DOM
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js (v18 or higher recommended)
+- npm or yarn
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+1. Clone the repository:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+git clone git@github.com:pRizz/word-weave.git
+cd word-weave
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
 
-# Step 3: Install the necessary dependencies.
-npm i
+```bash
+npm install
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Start the development server:
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Available Scripts
 
-**Use GitHub Codespaces**
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run build:dev` - Build in development mode
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run normalize-core` - Normalize the core dictionary file
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Usage
 
-## What technologies are used for this project?
+1. **Design Your Grid**: Click on cells to toggle them between white (letter cells) and black (blocked cells)
+2. **Choose Grid Size**: Select from the preset sizes (5×5, 7×7, 9×9, 11×11)
+3. **Generate Puzzle**: Click the "Generate" button to fill the grid with words
+4. **View Results**: Once generated, view the filled grid and the list of words used
+5. **Edit or Reset**: Use "Edit" to modify the grid or "Reset" to start over
 
-This project is built with:
+## Project Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+word-weave/
+├── public/
+│   ├── core.normalized.txt    # Normalized dictionary file
+│   └── dictionary.txt          # Full dictionary source
+├── src/
+│   ├── components/            # React components
+│   │   ├── CrosswordGrid.tsx  # Main grid display component
+│   │   ├── CluesList.tsx      # Word list display
+│   │   └── ui/                # shadcn/ui components
+│   ├── hooks/
+│   │   └── useCrosswordWorker.ts  # Web worker hook
+│   ├── lib/
+│   │   ├── crosswordFill.ts   # Core crossword filling algorithm
+│   │   ├── crosswordWorker.ts # Web worker implementation
+│   │   └── wordList.ts        # Dictionary loading utilities
+│   ├── config/
+│   │   └── dictionary.ts      # Dictionary configuration
+│   └── pages/
+│       └── Index.tsx          # Main application page
+└── scripts/
+    └── normalize-core.ts      # Dictionary normalization script
+```
 
-## How can I deploy this project?
+## Algorithm
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+The crossword generation uses a backtracking algorithm that:
 
-## Can I connect a custom domain to my Lovable project?
+1. Extracts word slots (horizontal and vertical) from the grid pattern
+2. Orders slots by constraint (fewer candidates first)
+3. Attempts to place words while respecting intersections
+4. Backtracks when no valid word can be placed
+5. Uses randomization for variety in generated puzzles
 
-Yes, you can!
+Generation runs in a web worker to keep the UI responsive during long-running operations.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

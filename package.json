@@ -1,8 +1,12 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "word-weave",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:pRizz/word-weave.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
