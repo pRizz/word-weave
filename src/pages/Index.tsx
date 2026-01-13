@@ -208,7 +208,6 @@ export default function Index() {
         minWordLength: DEFAULT_DICTIONARY_CONFIG.minWordLength,
         allowReuseWords: false,
         randomizeCandidates: true,
-        maxSteps: 500000,
       });
 
       if (result.grid && result.assignments) {

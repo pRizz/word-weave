@@ -55,13 +55,14 @@ export function fillCrossword(
   const minWordLength = options.minWordLength ?? 2;
   const allowReuseWords = options.allowReuseWords ?? false;
   const randomizeCandidates = options.randomizeCandidates ?? true;
-  const maxSteps = options.maxSteps ?? 2_000_000;
+  const maxSteps = options.maxSteps ?? 5_000_000;
   const progressInterval = 100;
 
   const { wordsByLength } = buildDictionaryIndex(dictionary);
 
   const height = shape.length;
-  if (height === 0) return { ok: false, reason: "Empty shape: height is 0", steps: 0 };
+  if (height === 0)
+    return { ok: false, reason: "Empty shape: height is 0", steps: 0 };
 
   if (!isRect(shape)) {
     return {
@@ -396,12 +397,14 @@ export type CrosswordShapeAnalysis = Readonly<{
   slotCount: number;
 }>;
 
-export function analyzeCrosswordShape(params: Readonly<{
-  shape: boolean[][];
-  dictionaryIndex: DictionaryIndex;
-  minWordLength: number;
-  allowReuseWords: boolean;
-}>): CrosswordShapeAnalysis {
+export function analyzeCrosswordShape(
+  params: Readonly<{
+    shape: boolean[][];
+    dictionaryIndex: DictionaryIndex;
+    minWordLength: number;
+    allowReuseWords: boolean;
+  }>,
+): CrosswordShapeAnalysis {
   const { shape, dictionaryIndex, minWordLength, allowReuseWords } = params;
 
   const issues: CrosswordShapeIssue[] = [];
@@ -513,7 +516,10 @@ function countSlotsByLength(slots: ReadonlyArray<Slot>): Map<number, number> {
   return m;
 }
 
-function countOrphanCells(shape: boolean[][], slots: ReadonlyArray<Slot>): number {
+function countOrphanCells(
+  shape: boolean[][],
+  slots: ReadonlyArray<Slot>,
+): number {
   const covered = new Set<string>();
   for (const slot of slots) {
     for (const { r, c } of slot.cells) {
