@@ -10,40 +10,8 @@ import {
   buildDictionaryIndex,
 } from "@/lib/crosswordFill";
 import { DEFAULT_DICTIONARY_CONFIG } from "@/config/dictionary";
+import { GRID_PRESETS, createDefaultShape } from "@/config/gridConfig";
 import { Sparkles, RotateCcw, Grid3X3, Loader2, X } from "lucide-react";
-
-const GRID_PRESETS = {
-  small: { name: "5×5", size: 5 },
-  medium: { name: "7×7", size: 7 },
-  large: { name: "9×9", size: 9 },
-  classic: { name: "11×11", size: 11 },
-};
-
-// Create a simple crossword pattern
-function createDefaultShape(size: number): boolean[][] {
-  const shape: boolean[][] = [];
-  for (let r = 0; r < size; r++) {
-    const row: boolean[] = [];
-    for (let c = 0; c < size; c++) {
-      // Create some black squares for visual interest (symmetric pattern)
-      const isBlack =
-        (size >= 7 &&
-          r === Math.floor(size / 2) &&
-          c === Math.floor(size / 2)) ||
-        (size >= 9 && r === 1 && c === 1) ||
-        (size >= 9 && r === 1 && c === size - 2) ||
-        (size >= 9 && r === size - 2 && c === 1) ||
-        (size >= 9 && r === size - 2 && c === size - 2) ||
-        (size >= 11 && r === 3 && c === 5) ||
-        (size >= 11 && r === 5 && c === 3) ||
-        (size >= 11 && r === 5 && c === 7) ||
-        (size >= 11 && r === 7 && c === 5);
-      row.push(!isBlack);
-    }
-    shape.push(row);
-  }
-  return shape;
-}
 
 export default function Index() {
   const [gridSize, setGridSize] = useState<keyof typeof GRID_PRESETS>("medium");
