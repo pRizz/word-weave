@@ -265,7 +265,7 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border py-6">
-        <div className="container max-w-5xl mx-auto px-4">
+        <div className="container max-w-7xl mx-auto px-4">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground tracking-tight">
             Crossword Generator
           </h1>
@@ -275,11 +275,9 @@ export default function Index() {
         </div>
       </header>
 
-      <main className="container max-w-5xl mx-auto px-4 py-8">
-        <BannerHost className="mb-6" candidates={bannerCandidates} />
-
+      <main className="container max-w-7xl mx-auto px-4 py-8">
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8 overflow-hidden max-w-4xl mx-auto">
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-sm font-sans text-muted-foreground whitespace-nowrap">
               Grid size:
@@ -398,39 +396,46 @@ export default function Index() {
         )}
 
         {/* Grid and Clues */}
-        <div className="grid lg:grid-cols-[minmax(auto, 1fr)_1fr] gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start justify-center lg:max-w-5xl lg:mx-auto">
           {/* Grid */}
-          <div className="flex justify-center w-full">
-            <div
-              className={`animate-scale-in ${isGenerating ? "relative" : ""}`}
-            >
-              {isGenerating && (
-                <div className="absolute inset-0 bg-primary/5 rounded-lg pointer-events-none z-10 animate-pulse" />
-              )}
-              <CrosswordGrid
-                shape={shape}
-                filledGrid={
-                  isGenerating && maybeProgress?.partialGrid
-                    ? maybeProgress.partialGrid
-                    : maybeFilledGrid
-                }
-                onCellClick={handleCellClick}
-                isEditing={isEditing && !isGenerating}
-                cellSize={Math.min(45, Math.max(32, 400 / shape.length))}
-                tooltipMessage={
-                  isGenerating
-                    ? "Stop generation to edit the grid"
-                    : maybeFilledGrid
-                      ? "Reset the grid to edit it"
-                      : undefined
-                }
-              />
+          <div className="flex flex-col items-center w-full lg:w-auto lg:flex-shrink-0 gap-4">
+            <BannerHost
+              className="w-full max-w-fit"
+              candidates={bannerCandidates}
+              reserveMinHeightPx={0}
+            />
+            <div className="flex justify-center">
+              <div
+                className={`animate-scale-in ${isGenerating ? "relative" : ""}`}
+              >
+                {isGenerating && (
+                  <div className="absolute inset-0 bg-primary/5 rounded-lg pointer-events-none z-10 animate-pulse" />
+                )}
+                <CrosswordGrid
+                  shape={shape}
+                  filledGrid={
+                    isGenerating && maybeProgress?.partialGrid
+                      ? maybeProgress.partialGrid
+                      : maybeFilledGrid
+                  }
+                  onCellClick={handleCellClick}
+                  isEditing={isEditing && !isGenerating}
+                  cellSize={Math.min(45, Math.max(32, 400 / shape.length))}
+                  tooltipMessage={
+                    isGenerating
+                      ? "Stop generation to edit the grid"
+                      : maybeFilledGrid
+                        ? "Reset the grid to edit it"
+                        : undefined
+                  }
+                />
+              </div>
             </div>
           </div>
 
           {/* Clues */}
           {maybeFilledGrid && assignments.size > 0 && (
-            <div className="bg-card p-6 rounded-lg border border-border shadow-soft animate-fade-in">
+            <div className="bg-card p-6 rounded-lg border border-border shadow-soft animate-fade-in w-full lg:w-auto lg:min-w-[320px] lg:max-w-[400px] lg:flex-shrink-0">
               <h2 className="text-2xl font-serif font-semibold mb-4 text-foreground">
                 Words Used
               </h2>
@@ -441,7 +446,7 @@ export default function Index() {
 
         {/* Stats */}
         {maybeFilledGrid && (
-          <div className="mt-8 pt-6 border-t border-border animate-fade-in">
+          <div className="mt-8 pt-6 border-t border-border animate-fade-in max-w-4xl mx-auto">
             <div className="flex flex-wrap gap-6 text-sm font-sans text-muted-foreground">
               <div>
                 <span className="text-foreground font-medium">
@@ -484,7 +489,7 @@ export default function Index() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-border py-6">
-        <div className="container max-w-5xl mx-auto px-4">
+        <div className="container max-w-7xl mx-auto px-4">
           <p className="text-sm font-sans text-muted-foreground text-center">
             Click cells to design your grid pattern, then generate a complete
             crossword puzzle
