@@ -5,10 +5,13 @@ const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname,
-    );
+    // Only log if it's not the root path (which should be handled by the Index route)
+    if (location.pathname !== "/") {
+      console.error(
+        "404 Error: User attempted to access non-existent route:",
+        location.pathname,
+      );
+    }
   }, [location.pathname]);
 
   return (

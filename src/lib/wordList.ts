@@ -4031,22 +4031,49 @@ export const DEFAULT_WORD_LIST: string[] = [
 ];
 
 /**
- * @deprecated Use DEFAULT_DICTIONARY_CONFIG.url instead
+ * @deprecated Use DEFAULT_DICTIONARY_CONFIG.path instead
  */
 export const DICTIONARY_URL = "/dictionary.txt";
+
+/**
+ * Normalizes a URL path to respect the Vite base URL.
+ * If the path starts with '/', it will be prefixed with the base URL.
+ */
+function normalizeUrl(url: string): string {
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  // If URL is absolute (starts with /), prepend base URL
+  if (url.startsWith("/")) {
+    // Remove leading slash from URL and ensure base URL ends with /
+    const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+    return `${normalizedBase}${url.slice(1)}`;
+  }
+  // Relative URLs are resolved relative to base URL
+  return url.startsWith("./") || url.startsWith("../")
+    ? `${baseUrl}${url}`
+    : `${baseUrl}${url}`;
+}
 
 export async function fetchDictionaryWords(
   config: DictionaryConfig = DEFAULT_DICTIONARY_CONFIG,
 ): Promise<string[]> {
-  const response = await fetch(config.url, { cache: "force-cache" });
+  const normalizedUrl = normalizeUrl(config.path);
+  console.log("Loading dictionary:", {
+    path: config.path,
+    normalizedUrl,
+    baseUrl: import.meta.env.BASE_URL,
+    minWordLength: config.minWordLength,
+    maxWordLength: config.maxWordLength,
+  });
+
+  const response = await fetch(normalizedUrl, { cache: "force-cache" });
   if (!response.ok) {
     throw new Error(
-      `Failed to load dictionary from ${config.url} (${response.status})`,
+      `Failed to load dictionary from ${normalizedUrl} (${response.status})`,
     );
   }
 
   const text = await response.text();
-  return text
+  const words = text
     .split(/\r?\n/g)
     .map((line) => line.trim())
     .filter(
@@ -4054,4 +4081,14 @@ export async function fetchDictionaryWords(
         word.length >= config.minWordLength &&
         word.length <= config.maxWordLength,
     );
+
+  console.log("Dictionary loaded successfully:", {
+    path: config.path,
+    normalizedUrl,
+    totalWords: words.length,
+    minWordLength: config.minWordLength,
+    maxWordLength: config.maxWordLength,
+  });
+
+  return words;
 }

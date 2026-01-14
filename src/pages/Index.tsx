@@ -116,10 +116,14 @@ export default function Index() {
       .then((words) => {
         if (isCancelled) return;
         if (words.length === 0) return;
+        console.log("Using dictionary with", words.length, "words");
         setDictionary(words);
       })
       .catch(() => {
         // Keep DEFAULT_WORD_LIST as a fallback if the dictionary can't be loaded.
+        console.log(
+          "Dictionary loading failed, using fallback DEFAULT_WORD_LIST",
+        );
       })
       .finally(() => {
         if (isCancelled) return;

@@ -8,12 +8,20 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Normalize base URL for React Router
+// React Router expects basename without trailing slash (except for root)
+const getBasename = () => {
+  const base = import.meta.env.BASE_URL || "/";
+  // Keep root as "/", otherwise remove trailing slash
+  return base === "/" || base === "" ? "/" : base.replace(/\/+$/, "");
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter basename={getBasename()}>
         <Routes>
           <Route path="/" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -1,6 +1,6 @@
 export interface DictionaryConfig {
-  /** The URL/path to the dictionary file to use */
-  url: string;
+  /** The path suffix to the dictionary file (will be combined with base URL) */
+  path: string;
   /** Minimum word length to include */
   minWordLength: number;
   /** Maximum word length to include */
@@ -8,7 +8,7 @@ export interface DictionaryConfig {
 }
 
 export const DEFAULT_DICTIONARY_CONFIG: DictionaryConfig = {
-  url: "/core.normalized.txt",
+  path: "/core.normalized.txt",
   minWordLength: 2,
   maxWordLength: 15,
 };
