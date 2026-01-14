@@ -7,7 +7,10 @@
 
 An interactive web application for generating crossword puzzles. Design custom grid layouts and automatically fill them with words from a comprehensive dictionary using an intelligent backtracking algorithm.
 
-🌐 **Live Demo**: [https://crossword-puzzle-generator5.lovable.app](https://crossword-puzzle-generator5.lovable.app)
+🌐 **Live Demos**:
+
+- **Github Pages** (most up to date): [https://prizz.github.io/word-weave/](https://prizz.github.io/word-weave/)
+- **Lovable**: [https://crossword-weaver.lovable.app](https://crossword-weaver.lovable.app)
 
 ![Word Weave - Crossword Generator](docs/images/example.png)
 
