@@ -11,7 +11,24 @@ import {
 } from "@/lib/crosswordFill";
 import { DEFAULT_DICTIONARY_CONFIG } from "@/config/dictionary";
 import { GRID_PRESETS, createDefaultShape } from "@/config/gridConfig";
-import { Sparkles, RotateCcw, Grid3X3, Loader2, X } from "lucide-react";
+import {
+  Sparkles,
+  RotateCcw,
+  Grid3X3,
+  Loader2,
+  X,
+  Download,
+  FileJson,
+  Image,
+  FileText,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportAsJson, exportAsPng, exportAsPdf } from "@/lib/exportPuzzle";
 
 export default function Index() {
   const [gridSize, setGridSize] = useState<keyof typeof GRID_PRESETS>("medium");
@@ -232,6 +249,24 @@ export default function Index() {
     setMaybeGenerationStats(null);
   };
 
+  const handleExportJson = useCallback(() => {
+    if (maybeFilledGrid) {
+      exportAsJson(shape, maybeFilledGrid, assignments);
+    }
+  }, [shape, maybeFilledGrid, assignments]);
+
+  const handleExportPng = useCallback(() => {
+    if (maybeFilledGrid) {
+      exportAsPng(shape, maybeFilledGrid, { showAnswers: true });
+    }
+  }, [shape, maybeFilledGrid]);
+
+  const handleExportPdf = useCallback(() => {
+    if (maybeFilledGrid) {
+      exportAsPdf(shape, maybeFilledGrid, assignments, { showAnswers: true });
+    }
+  }, [shape, maybeFilledGrid, assignments]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -284,15 +319,44 @@ export default function Index() {
             </Button>
 
             {maybeFilledGrid && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleClear}
-                className="font-sans flex-shrink-0"
-              >
-                <Grid3X3 className="w-4 h-4 mr-1.5" />
-                Edit
-              </Button>
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleClear}
+                  className="font-sans flex-shrink-0"
+                >
+                  <Grid3X3 className="w-4 h-4 mr-1.5" />
+                  Edit
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="font-sans flex-shrink-0"
+                    >
+                      <Download className="w-4 h-4 mr-1.5" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleExportPng}>
+                      <Image className="w-4 h-4 mr-2" />
+                      Save as PNG
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPdf}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Save as PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportJson}>
+                      <FileJson className="w-4 h-4 mr-2" />
+                      Save as JSON
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
 
             {isGenerating ? (
